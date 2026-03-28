@@ -1,0 +1,29 @@
+---
+
+- hosts: ubuntu_servers
+  become: true
+  tasks:
+
+  - name: update apt cache
+    ansible.builtin.apt:
+      update_cache: true
+
+  - name: apply pending updates
+    ansible.builtin.apt:
+      upgrade: dist
+      
+  # - name: verify unattended upgrades are enabled
+    
+  - name: copy custom config file to 50unattended-upgrades file
+    copy:
+      src: custom_unattended_upgrades_config
+      dest: /etc/apt/apt.conf.d/50unattended-upgrades
+      owner: root
+      group: root
+      mode: 0644
+
+  # - name: allow tcp and udp traffic over port 22 on the UFW firewall
+
+  # - name: enable the UFW firewall
+
+  # - name: install QEMU guest agent for proxmox virtual machines
