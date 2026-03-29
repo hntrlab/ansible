@@ -12,7 +12,11 @@
     ansible.builtin.apt:
       upgrade: dist
       
-  # - name: verify unattended upgrades are enabled
+  - name: verify unattended upgrades are started and enabled
+    service:
+      name: unattended-upgrades
+      state: started
+      enabled: true
     
   - name: copy custom config file to 50unattended-upgrades file
     copy:
@@ -21,9 +25,31 @@
       owner: root
       group: root
       mode: 0644
+    register: upgrades_file_updated
 
-  # - name: allow tcp and udp traffic over port 22 on the UFW firewall
+  - name: restart unattended upgrades file if config file was changed
+    service:
+      name: unattended-upgrades
+      state: restarted
+      enabled: true
+    when: upgrades_file_updated.changed
 
-  # - name: enable the UFW firewall
+  - name: allow ssh connections to the host machine through UFW
+    community.general.ufw:
+      rule: allow
+      port: '22'
 
-  # - name: install QEMU guest agent for proxmox virtual machines
+  - name: start and enable the UFW firewall
+    community.general.ufw:
+      state: enabled
+
+  - name: install QEMU guest agent for proxmox virtual machines
+    ansible.builtin.apt:
+      name: qemu-guest-agent
+      state: latest
+
+  - name: start and enable QEMU guest agent
+    service:
+      name: qemu-guest-agent
+      state: started
+      enabled: true
