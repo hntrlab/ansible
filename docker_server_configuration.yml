@@ -1,0 +1,54 @@
+---
+
+- name: Install and configure docker on portainer
+  hosts: docker_servers
+  become: true
+  tasks:
+
+  vars:
+    docker_conflicting_packages:
+      - docker.io
+      - docker-compose
+      - docker-compose-v2
+      - docker-doc
+      - podman-docker
+      - containerd
+      - runc
+
+    docker_packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+
+    docker_user: docker
+    docker_apt_keyring_dir: /etc/apt/keyrings
+    docker_apt_key_file: /etc/apt/keyrings/docker.asc
+    docker_apt_repo_file: /etc/apt/sources.list.d/docker.sources
+
+  tasks:
+
+    - name: Remove conflicting docker-related packages
+      ansible.builtin.apt:
+        name: "{{ docker_conflicting_packages}}"
+        state: absent
+        purge: true
+        autoremove: true
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install prerequisite packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+        state: present
+
+    - name: Ensure apt keyrings directory exists
+      ansible.builtin.file:
+        path: "{{ docker_apt_keyring_dir }}"
+        state: directory
+        mode: "0755"
