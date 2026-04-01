@@ -52,3 +52,61 @@
         path: "{{ docker_apt_keyring_dir }}"
         state: directory
         mode: "0755"
+
+    - name: Download Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: "{{ docker_apt_key_file }}"
+        mode: "0644"
+
+    - name: Add Docker apt repository using deb822 format
+      ansible.builtin.copy:
+        dest: "{{ docker_apt_repo_file }}"
+        mode: "0644"
+        content: |
+          Types: deb
+          URIs: https://download.docker.com/linux/ubuntu
+          Suites: {{ ansible_distribution_release }}
+          Components: stable
+          Signed-By: {{ docker_apt_key_file }}
+
+    - name: Update apt cache after adding Docker repository
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install Docker packages
+      ansible.builtin.apt:
+        name: "{{ docker_packages }}"
+        state: present
+
+    - name: Ensure Docker service is enabled and started
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Ensure containerd service is enabled and started
+      ansible.builtin.service:
+        name: containerd
+        state: started
+        enabled: true
+
+    - name: Add user to docker group
+      ansible.builtin.user:
+        name: "{{ docker_user }}"
+        groups: docker
+        append: true
+
+    - name: Run hello-world container to verify Docker installation
+      ansible.builtin.command: docker run hello-world
+      register: docker_hello
+      changed_when: false
+      failed_when: docker_hello.rc != 0
+
+    - name: Show docker hello-world output
+      ansible.builtin.debug:
+        var: docker_hello.stdout_lines
+
+    - name: Inform user that a new login session is required for docker group membership
+      ansible.builtin.debug:
+        msg: "User {{ docker_user }} was added to the docker group. They must log out and back in for group membership to apply."
